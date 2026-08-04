@@ -1,0 +1,124 @@
+"""Integration tests for SQLAlchemyAssetRepository.
+
+These run against a real (in-memory) SQLite database via the actual
+repository class — proving the repository, the mapper, and the ORM schema
+all work together correctly, not just in isolation.
+"""
+
+import pytest
+from sqlalchemy import create_engine
+from sqlalchemy.orm import Session
+
+from models.asset import Asset
+from models.enums import AssetCategory
+from models.host import Host
+from models.orm.base import Base
+from models.user import User
+from repositories.asset_repository import SQLAlchemyAssetRepository
+from repositories.exceptions import AssetNotFoundError
+
+
+@pytest.fixture()
+def repository():
+    engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(engine)
+    with Session(engine) as session:
+        yield SQLAlchemyAssetRepository(session)
+
+
+class TestAdd:
+    def test_add_generic_asset(self, repository):
+        asset = Asset(identifier="generic-001")
+
+        saved = repository.add(asset)
+
+        assert saved.id == asset.id
+        assert saved.identifier == "generic-001"
+
+    def test_add_host(self, repository):
+        host = Host(identifier="web-01", ip_address="10.0.0.5", is_internet_facing=True)
+
+        saved = repository.add(host)
+
+        assert isinstance(saved, Host)
+        assert saved.ip_address == "10.0.0.5"
+        assert saved.is_internet_facing is True
+
+    def test_add_user(self, repository):
+        user = User(identifier="jdoe", is_privileged=True, department="IT")
+
+        saved = repository.add(user)
+
+        assert isinstance(saved, User)
+        assert saved.is_privileged is True
+        assert saved.department == "IT"
+
+
+class TestGetById:
+    def test_get_existing_asset(self, repository):
+        host = repository.add(Host(identifier="web-02"))
+
+        fetched = repository.get_by_id(host.id)
+
+        assert fetched is not None
+        assert fetched.id == host.id
+        assert isinstance(fetched, Host)
+
+    def test_get_nonexistent_returns_none(self, repository):
+        import uuid
+
+        result = repository.get_by_id(uuid.uuid4())
+
+        assert result is None
+
+
+class TestListAll:
+    def test_list_all_returns_mixed_types(self, repository):
+        repository.add(Asset(identifier="g1"))
+        repository.add(Host(identifier="h1"))
+        repository.add(User(identifier="u1"))
+
+        all_assets = repository.list_all()
+
+        assert len(all_assets) == 3
+        types_found = {type(a) for a in all_assets}
+        assert types_found == {Asset, Host, User}
+
+    def test_list_all_on_empty_repository(self, repository):
+        assert repository.list_all() == []
+
+
+class TestUpdate:
+    def test_update_existing_asset(self, repository):
+        host = repository.add(Host(identifier="web-03", ip_address="10.0.0.1"))
+
+        host.ip_address = "10.0.0.2"
+        host.category = AssetCategory.SERVER
+        updated = repository.update(host)
+
+        assert updated.ip_address == "10.0.0.2"
+        assert updated.category == AssetCategory.SERVER
+
+        refetched = repository.get_by_id(host.id)
+        assert refetched.ip_address == "10.0.0.2"
+
+    def test_update_nonexistent_raises(self, repository):
+        phantom = Host(identifier="ghost")
+
+        with pytest.raises(AssetNotFoundError):
+            repository.update(phantom)
+
+
+class TestDelete:
+    def test_delete_existing_asset(self, repository):
+        asset = repository.add(Asset(identifier="to-delete"))
+
+        repository.delete(asset.id)
+
+        assert repository.get_by_id(asset.id) is None
+
+    def test_delete_nonexistent_raises(self, repository):
+        import uuid
+
+        with pytest.raises(AssetNotFoundError):
+            repository.delete(uuid.uuid4())
