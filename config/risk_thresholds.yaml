@@ -1,0 +1,10 @@
+# Risk level thresholds — the minimum total score needed to reach each
+# level. A score maps to the HIGHEST level whose threshold it meets or
+# exceeds (see services/risk_engine/scoring.py). Must be strictly ascending
+# low -> critical; all four levels are required (validated at load time,
+# see services/risk_engine/thresholds.py).
+
+low: 0
+medium: 20
+high: 50
+critical: 80
