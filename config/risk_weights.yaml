@@ -1,0 +1,10 @@
+# Risk factor weights — how many points each factor contributes toward an
+# asset's total risk score (Milestone 13 sums these). Editing a value here
+# retunes scoring without any code change. Every registered factor MUST
+# have an entry here, and every entry here MUST match a registered factor
+# name — both directions are validated at startup (see services/risk_engine/weights.py).
+
+critical_asset_flag: 30
+internet_facing: 25
+unpatched_vulnerability: 15
+privileged_account: 20
