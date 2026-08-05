@@ -11,6 +11,8 @@ from uuid import UUID
 
 from logging_.logger import get_logger
 from models.asset import Asset
+from models.enums import AssetCategory
+from repositories.exceptions import AssetNotFoundError
 from repositories.interfaces import AssetRepositoryInterface
 from services.exceptions import DuplicateAssetError
 
@@ -80,3 +82,75 @@ class AssetInventoryService:
         """
         self._repository.delete(asset_id)
         logger.info("Asset deleted", extra={"asset_id": str(asset_id)})
+
+    def flag_as_critical(self, asset_id: UUID) -> Asset:
+        """Mark an asset as business-critical.
+
+        This is a deliberate human decision, not a computed property — it
+        does not get set or unset by anything the Risk Engine calculates
+        (Milestone 12 onward). It instead feeds IN as one of the Risk
+        Engine's input factors, the same direction exposure signals will
+        (Milestone 11).
+
+        Raises:
+            AssetNotFoundError: if no asset with this id exists.
+        """
+        asset = self._get_asset_or_raise(asset_id)
+        asset.is_critical = True
+        updated = self._repository.update(asset)
+        logger.info(
+            "Asset flagged as critical",
+            extra={"asset_id": str(updated.id), "identifier": updated.identifier},
+        )
+        return updated
+
+    def unflag_as_critical(self, asset_id: UUID) -> Asset:
+        """Remove the business-critical flag from an asset.
+
+        Raises:
+            AssetNotFoundError: if no asset with this id exists.
+        """
+        asset = self._get_asset_or_raise(asset_id)
+        asset.is_critical = False
+        updated = self._repository.update(asset)
+        logger.info(
+            "Asset unflagged as critical",
+            extra={"asset_id": str(updated.id), "identifier": updated.identifier},
+        )
+        return updated
+
+    def assign_category(self, asset_id: UUID, category: AssetCategory) -> Asset:
+        """Set an asset's business classification (server, workstation, etc).
+
+        Raises:
+            AssetNotFoundError: if no asset with this id exists.
+        """
+        asset = self._get_asset_or_raise(asset_id)
+        asset.category = category
+        updated = self._repository.update(asset)
+        logger.info(
+            "Asset category assigned",
+            extra={
+                "asset_id": str(updated.id),
+                "identifier": updated.identifier,
+                "category": str(category),
+            },
+        )
+        return updated
+
+    def list_critical_assets(self) -> list[Asset]:
+        """Return every asset currently flagged as critical."""
+        return self._repository.list_critical()
+
+    def list_assets_by_category(self, category: AssetCategory) -> list[Asset]:
+        """Return every asset with this exact category."""
+        return self._repository.list_by_category(category)
+
+    def _get_asset_or_raise(self, asset_id: UUID) -> Asset:
+        """Shared lookup for the flag/category operations above: they all
+        need to fetch-then-modify-then-update, and all need the same clear
+        error when the asset doesn't exist."""
+        asset = self._repository.get_by_id(asset_id)
+        if asset is None:
+            raise AssetNotFoundError(asset_id)
+        return asset

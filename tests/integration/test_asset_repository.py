@@ -109,6 +109,38 @@ class TestListAll:
         assert repository.list_all() == []
 
 
+class TestListCritical:
+    def test_returns_only_critical_flagged(self, repository):
+        critical = repository.add(Host(identifier="dc-01", is_critical=True))
+        repository.add(Host(identifier="ws-01", is_critical=False))
+
+        result = repository.list_critical()
+
+        assert len(result) == 1
+        assert result[0].id == critical.id
+
+    def test_empty_when_nothing_flagged(self, repository):
+        repository.add(Host(identifier="ws-02"))
+
+        assert repository.list_critical() == []
+
+
+class TestListByCategory:
+    def test_returns_only_matching_category(self, repository):
+        db_server = repository.add(Host(identifier="db-01", category=AssetCategory.DATABASE_SERVER))
+        repository.add(Host(identifier="ws-03", category=AssetCategory.WORKSTATION))
+
+        result = repository.list_by_category(AssetCategory.DATABASE_SERVER)
+
+        assert len(result) == 1
+        assert result[0].id == db_server.id
+
+    def test_empty_when_no_match(self, repository):
+        repository.add(Host(identifier="ws-04", category=AssetCategory.WORKSTATION))
+
+        assert repository.list_by_category(AssetCategory.NETWORK_DEVICE) == []
+
+
 class TestUpdate:
     def test_update_existing_asset(self, repository):
         host = repository.add(Host(identifier="web-03", ip_address="10.0.0.1"))

@@ -9,6 +9,7 @@ import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 
+from models.enums import AssetCategory
 from models.host import Host
 from models.orm.base import Base
 from repositories.asset_repository import SQLAlchemyAssetRepository
@@ -62,3 +63,28 @@ def test_duplicate_identifier_rejected_through_real_database(service):
     # Confirm the rejected duplicate never made it to the database.
     all_assets = service.list_assets()
     assert len(all_assets) == 1
+
+
+def test_critical_flagging_through_real_database(service):
+    critical_host = service.register_asset(Host(identifier="dc-01"))
+    service.register_asset(Host(identifier="workstation-01"))
+
+    service.flag_as_critical(critical_host.id)
+
+    critical_assets = service.list_critical_assets()
+    assert len(critical_assets) == 1
+    assert critical_assets[0].id == critical_host.id
+
+    service.unflag_as_critical(critical_host.id)
+    assert service.list_critical_assets() == []
+
+
+def test_category_assignment_through_real_database(service):
+    db_host = service.register_asset(Host(identifier="db-01"))
+    service.register_asset(Host(identifier="ws-01"))
+
+    service.assign_category(db_host.id, AssetCategory.DATABASE_SERVER)
+
+    matching = service.list_assets_by_category(AssetCategory.DATABASE_SERVER)
+    assert len(matching) == 1
+    assert matching[0].id == db_host.id

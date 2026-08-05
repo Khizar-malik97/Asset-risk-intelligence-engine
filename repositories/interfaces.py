@@ -11,6 +11,7 @@ from abc import ABC, abstractmethod
 from uuid import UUID
 
 from models.asset import Asset
+from models.enums import AssetCategory
 
 
 class AssetRepositoryInterface(ABC):
@@ -35,6 +36,19 @@ class AssetRepositoryInterface(ABC):
     @abstractmethod
     def list_all(self) -> list[Asset]:
         """Return every asset in the inventory, regardless of type."""
+
+    @abstractmethod
+    def list_critical(self) -> list[Asset]:
+        """Return every asset currently flagged as critical.
+
+        Purpose-built for Milestone 10 (Critical Asset Management), not a
+        general filtering capability — the generic multi-filter query layer
+        is Milestone 18's job (see docs/scope.md)."""
+
+    @abstractmethod
+    def list_by_category(self, category: AssetCategory) -> list[Asset]:
+        """Return every asset with this exact category. Same scope note as
+        list_critical() above — purpose-built, not general search."""
 
     @abstractmethod
     def update(self, asset: Asset) -> Asset:

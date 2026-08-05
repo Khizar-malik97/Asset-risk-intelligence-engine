@@ -9,6 +9,7 @@ imported by application code.
 from uuid import UUID
 
 from models.asset import Asset
+from models.enums import AssetCategory
 from repositories.exceptions import AssetNotFoundError
 from repositories.interfaces import AssetRepositoryInterface
 
@@ -34,6 +35,12 @@ class FakeAssetRepository(AssetRepositoryInterface):
 
     def list_all(self) -> list[Asset]:
         return list(self._store.values())
+
+    def list_critical(self) -> list[Asset]:
+        return [asset for asset in self._store.values() if asset.is_critical]
+
+    def list_by_category(self, category: AssetCategory) -> list[Asset]:
+        return [asset for asset in self._store.values() if asset.category == category]
 
     def update(self, asset: Asset) -> Asset:
         if asset.id not in self._store:
