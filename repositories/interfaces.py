@@ -26,6 +26,13 @@ class AssetRepositoryInterface(ABC):
         """Return the asset with this id, or None if it doesn't exist."""
 
     @abstractmethod
+    def get_by_identifier(self, identifier: str) -> Asset | None:
+        """Return the asset with this exact identifier, or None if none
+        exists. Used by the service layer for duplicate detection on
+        manual registration (Milestone 9) — not a general search/filter
+        capability (that's Milestone 18)."""
+
+    @abstractmethod
     def list_all(self) -> list[Asset]:
         """Return every asset in the inventory, regardless of type."""
 

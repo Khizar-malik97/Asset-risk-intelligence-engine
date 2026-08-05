@@ -12,6 +12,7 @@ from uuid import UUID
 from logging_.logger import get_logger
 from models.asset import Asset
 from repositories.interfaces import AssetRepositoryInterface
+from services.exceptions import DuplicateAssetError
 
 logger = get_logger(__name__)
 
@@ -26,11 +27,22 @@ class AssetInventoryService:
     def register_asset(self, asset: Asset) -> Asset:
         """Register a new asset in the inventory.
 
-        Note: this does not check for duplicate identifiers — that's the
-        Discovery Reconciliation engine's job (Milestone 16). Manual
-        registration intentionally allows it, per ADR discussion in
-        tests/integration/test_asset_orm.py::test_duplicate_identifier_is_allowed_at_db_layer.
+        Rejects exact-identifier duplicates (Milestone 9) — see
+        services/exceptions.py::DuplicateAssetError for how this differs
+        from Discovery Reconciliation (Milestone 16).
+
+        Raises:
+            DuplicateAssetError: if an asset with this identifier is
+                already registered.
         """
+        existing = self._repository.get_by_identifier(asset.identifier)
+        if existing is not None:
+            logger.info(
+                "Asset registration rejected: duplicate identifier",
+                extra={"identifier": asset.identifier, "existing_asset_id": str(existing.id)},
+            )
+            raise DuplicateAssetError(asset.identifier)
+
         saved = self._repository.add(asset)
         logger.info(
             "Asset registered",

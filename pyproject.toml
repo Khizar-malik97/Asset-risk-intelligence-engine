@@ -2,15 +2,27 @@
 name = "asset-risk-intelligence-engine"
 version = "0.1.0"
 description = "Module 12 (Asset Intelligence Module) of the AXERONIX XDR Copilot platform"
-requires-python = ">=3.11"
+# requires-python is a MINIMUM floor, not a pin to your exact interpreter.
+# We develop on Python 3.14, but nothing in this codebase uses 3.14-only
+# syntax, so the floor stays at 3.12 — raising it would just needlessly
+# block anyone still on 3.12/3.13 from installing the package.
+requires-python = ">=3.12"
 
 [tool.black]
 line-length = 100
-target-version = ["py311"]
+# NOTE: as of the tool versions pinned in requirements-dev.txt (black
+# 24.10.0, ruff 0.8.4), Python 3.14 target syntax checking isn't supported
+# yet (3.14 postdates these releases) — "py314" would be rejected as an
+# invalid target-version. py313 is the highest these versions recognize,
+# and since 3.12-3.14 haven't introduced syntax-breaking changes that
+# matter for this project, targeting py313 here is safe even though the
+# actual dev interpreter is 3.14. Bump this (and the tool versions in
+# requirements-dev.txt) together if/when black & ruff ship 3.14 support.
+target-version = ["py313"]
 
 [tool.ruff]
 line-length = 100
-target-version = "py311"
+target-version = "py313"
 # Alembic auto-generates migration files; they're not hand-authored and
 # shouldn't be held to the same lint standard as the rest of the codebase.
 extend-exclude = ["migrations/versions"]
@@ -26,5 +38,22 @@ testpaths = ["tests"]
 addopts = "--cov=. --cov-report=term-missing"
 
 [tool.mypy]
-python_version = "3.11"
+python_version = "3.13"
 strict = true
+
+# Application code stays under full strict mypy (every function annotated,
+# including test-double/fixture code in tests/fakes and tests/conftest —
+# those aren't test *cases*, they're real infrastructure other code depends
+# on). Test *files* (tests/unit, tests/integration) are exempted from
+# disallow_untyped_defs specifically: strict's blanket requirement that
+# EVERY function declare "-> None" adds real boilerplate to hundreds of
+# `def test_x(self):` methods with no corresponding bug-catching value —
+# there's no caller relying on a test function's return type. We keep
+# check_untyped_defs = true, though, so mypy still type-checks what's
+# INSIDE each test body (e.g. catching a genuine type mismatch in an
+# assertion) — we're relaxing the annotation requirement, not turning
+# off checking entirely.
+[[tool.mypy.overrides]]
+module = ["tests.unit.*", "tests.integration.*"]
+disallow_untyped_defs = false
+check_untyped_defs = true

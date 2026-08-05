@@ -72,6 +72,27 @@ class TestGetById:
         assert result is None
 
 
+class TestGetByIdentifier:
+    def test_get_existing_by_identifier(self, repository):
+        repository.add(Host(identifier="unique-host"))
+
+        fetched = repository.get_by_identifier("unique-host")
+
+        assert fetched is not None
+        assert fetched.identifier == "unique-host"
+
+    def test_get_nonexistent_identifier_returns_none(self, repository):
+        result = repository.get_by_identifier("does-not-exist")
+
+        assert result is None
+
+    def test_identifier_lookup_is_case_sensitive(self, repository):
+        repository.add(Host(identifier="CaseSensitive"))
+
+        assert repository.get_by_identifier("casesensitive") is None
+        assert repository.get_by_identifier("CaseSensitive") is not None
+
+
 class TestListAll:
     def test_list_all_returns_mixed_types(self, repository):
         repository.add(Asset(identifier="g1"))

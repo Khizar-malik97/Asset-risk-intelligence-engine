@@ -34,6 +34,12 @@ class SQLAlchemyAssetRepository(AssetRepositoryInterface):
             return None
         return orm_to_domain(orm_asset)
 
+    def get_by_identifier(self, identifier: str) -> Asset | None:
+        orm_asset = self._session.query(AssetORM).filter(AssetORM.identifier == identifier).first()
+        if orm_asset is None:
+            return None
+        return orm_to_domain(orm_asset)
+
     def list_all(self) -> list[Asset]:
         orm_assets = self._session.query(AssetORM).all()
         return [orm_to_domain(orm_asset) for orm_asset in orm_assets]

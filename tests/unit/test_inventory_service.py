@@ -12,6 +12,7 @@ import pytest
 from models.asset import Asset
 from models.host import Host
 from repositories.exceptions import AssetNotFoundError
+from services.exceptions import DuplicateAssetError
 from services.inventory.inventory_service import AssetInventoryService
 from tests.fakes.fake_asset_repository import FakeAssetRepository
 
@@ -38,6 +39,28 @@ class TestRegisterAsset:
 
         assert fetched is not None
         assert fetched.identifier == "new-asset"
+
+    def test_duplicate_identifier_is_rejected(self, service):
+        service.register_asset(Asset(identifier="dup-host"))
+
+        with pytest.raises(DuplicateAssetError):
+            service.register_asset(Asset(identifier="dup-host"))
+
+    def test_duplicate_rejection_leaves_original_untouched(self, service):
+        original = service.register_asset(Host(identifier="dup-host-2", ip_address="10.0.0.1"))
+
+        with pytest.raises(DuplicateAssetError):
+            service.register_asset(Host(identifier="dup-host-2", ip_address="10.0.0.2"))
+
+        unchanged = service.get_asset(original.id)
+        assert unchanged.ip_address == "10.0.0.1"
+
+    def test_different_identifiers_do_not_collide(self, service):
+        service.register_asset(Asset(identifier="host-a"))
+
+        # Should not raise
+        result = service.register_asset(Asset(identifier="host-b"))
+        assert result.identifier == "host-b"
 
 
 class TestGetAsset:

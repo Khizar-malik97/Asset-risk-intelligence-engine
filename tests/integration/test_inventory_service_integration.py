@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session
 from models.host import Host
 from models.orm.base import Base
 from repositories.asset_repository import SQLAlchemyAssetRepository
+from services.exceptions import DuplicateAssetError
 from services.inventory.inventory_service import AssetInventoryService
 
 
@@ -50,3 +51,14 @@ def test_list_assets_through_real_database(service):
     all_assets = service.list_assets()
 
     assert len(all_assets) == 2
+
+
+def test_duplicate_identifier_rejected_through_real_database(service):
+    service.register_asset(Host(identifier="dup-prod-01"))
+
+    with pytest.raises(DuplicateAssetError):
+        service.register_asset(Host(identifier="dup-prod-01"))
+
+    # Confirm the rejected duplicate never made it to the database.
+    all_assets = service.list_assets()
+    assert len(all_assets) == 1

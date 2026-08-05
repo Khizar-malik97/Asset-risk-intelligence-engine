@@ -26,6 +26,12 @@ class FakeAssetRepository(AssetRepositoryInterface):
     def get_by_id(self, asset_id: UUID) -> Asset | None:
         return self._store.get(asset_id)
 
+    def get_by_identifier(self, identifier: str) -> Asset | None:
+        for asset in self._store.values():
+            if asset.identifier == identifier:
+                return asset
+        return None
+
     def list_all(self) -> list[Asset]:
         return list(self._store.values())
 
