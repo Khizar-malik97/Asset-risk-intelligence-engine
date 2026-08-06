@@ -51,6 +51,22 @@ class AssetRepositoryInterface(ABC):
         list_critical() above — purpose-built, not general search."""
 
     @abstractmethod
+    def list_hosts(self) -> list[Asset]:
+        """Return every asset of type Host.
+
+        Purpose-built for Milestone 17 (Host & User Inventory
+        Specialization) — same scope note as list_critical(): not a
+        general filter, the generic query layer is Milestone 18's job.
+        Return type is list[Asset] (not list[Host]) at the repository
+        layer since AssetRepositoryInterface deals in the base type;
+        HostInventoryService (Milestone 17) narrows it for callers."""
+
+    @abstractmethod
+    def list_users(self) -> list[Asset]:
+        """Return every asset of type User. Same scope/typing note as
+        list_hosts() above."""
+
+    @abstractmethod
     def update(self, asset: Asset) -> Asset:
         """Persist changes to an existing asset.
 

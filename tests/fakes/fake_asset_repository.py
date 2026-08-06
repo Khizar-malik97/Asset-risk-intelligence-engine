@@ -10,6 +10,8 @@ from uuid import UUID
 
 from models.asset import Asset
 from models.enums import AssetCategory
+from models.host import Host
+from models.user import User
 from repositories.exceptions import AssetNotFoundError
 from repositories.interfaces import AssetRepositoryInterface
 
@@ -41,6 +43,12 @@ class FakeAssetRepository(AssetRepositoryInterface):
 
     def list_by_category(self, category: AssetCategory) -> list[Asset]:
         return [asset for asset in self._store.values() if asset.category == category]
+
+    def list_hosts(self) -> list[Asset]:
+        return [asset for asset in self._store.values() if isinstance(asset, Host)]
+
+    def list_users(self) -> list[Asset]:
+        return [asset for asset in self._store.values() if isinstance(asset, User)]
 
     def update(self, asset: Asset) -> Asset:
         if asset.id not in self._store:

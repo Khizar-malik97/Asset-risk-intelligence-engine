@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 
 from models.asset import Asset
 from models.enums import AssetCategory
-from models.orm.asset_orm import AssetORM
+from models.orm.asset_orm import AssetORM, HostORM, UserORM
 from repositories.exceptions import AssetNotFoundError
 from repositories.interfaces import AssetRepositoryInterface
 from repositories.mappers import domain_to_orm, orm_to_domain
@@ -51,6 +51,14 @@ class SQLAlchemyAssetRepository(AssetRepositoryInterface):
 
     def list_by_category(self, category: AssetCategory) -> list[Asset]:
         orm_assets = self._session.query(AssetORM).filter(AssetORM.category == category).all()
+        return [orm_to_domain(orm_asset) for orm_asset in orm_assets]
+
+    def list_hosts(self) -> list[Asset]:
+        orm_assets = self._session.query(HostORM).all()
+        return [orm_to_domain(orm_asset) for orm_asset in orm_assets]
+
+    def list_users(self) -> list[Asset]:
+        orm_assets = self._session.query(UserORM).all()
         return [orm_to_domain(orm_asset) for orm_asset in orm_assets]
 
     def update(self, asset: Asset) -> Asset:
