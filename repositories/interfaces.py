@@ -11,7 +11,7 @@ from abc import ABC, abstractmethod
 from uuid import UUID
 
 from models.asset import Asset
-from models.enums import AssetCategory
+from models.enums import AssetCategory, AssetType
 
 
 class AssetRepositoryInterface(ABC):
@@ -81,3 +81,43 @@ class AssetRepositoryInterface(ABC):
         Raises:
             AssetNotFoundError: if no asset with this id exists.
         """
+
+    def search(
+        self,
+        *,
+        category: AssetCategory | None = None,
+        is_critical: bool | None = None,
+        asset_type: AssetType | None = None,
+        text: str | None = None,
+    ) -> list[Asset]:
+        """Return assets matching all of the given filters (AND semantics).
+        Every parameter left as None is ignored (not filtered on).
+
+        This is a CONCRETE method with a default, naive implementation —
+        deliberately not abstract, so existing repository implementations
+        (e.g. test doubles) keep working without modification. It filters
+        list_all() in plain Python, which is correct but not efficient.
+
+        A concrete repository backed by a real database SHOULD override
+        this with an equivalent, SQL-pushed-down implementation for
+        performance — see SQLAlchemyAssetRepository.search() (Milestone 18).
+
+        Args:
+            category: exact category match.
+            is_critical: exact criticality flag match.
+            asset_type: exact asset type match (generic/host/user).
+            text: case-insensitive substring match against `identifier`.
+        """
+        results = self.list_all()
+
+        if category is not None:
+            results = [a for a in results if a.category == category]
+        if is_critical is not None:
+            results = [a for a in results if a.is_critical == is_critical]
+        if asset_type is not None:
+            results = [a for a in results if a.asset_type == asset_type]
+        if text:
+            lowered = text.lower()
+            results = [a for a in results if lowered in a.identifier.lower()]
+
+        return results

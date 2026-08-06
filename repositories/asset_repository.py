@@ -9,7 +9,7 @@ from uuid import UUID
 from sqlalchemy.orm import Session
 
 from models.asset import Asset
-from models.enums import AssetCategory
+from models.enums import AssetCategory, AssetType
 from models.orm.asset_orm import AssetORM, HostORM, UserORM
 from repositories.exceptions import AssetNotFoundError
 from repositories.interfaces import AssetRepositoryInterface
@@ -83,3 +83,30 @@ class SQLAlchemyAssetRepository(AssetRepositoryInterface):
 
         self._session.delete(existing)
         self._session.commit()
+
+    def search(
+        self,
+        *,
+        category: AssetCategory | None = None,
+        is_critical: bool | None = None,
+        asset_type: AssetType | None = None,
+        text: str | None = None,
+    ) -> list[Asset]:
+        """SQL-pushed-down override of the interface's default (Python-side)
+        search(). Builds one query with all requested filters combined via
+        AND, so filtering happens in the database rather than in Python —
+        the whole point of overriding the default for a real backend.
+        """
+        query = self._session.query(AssetORM)
+
+        if category is not None:
+            query = query.filter(AssetORM.category == category)
+        if is_critical is not None:
+            query = query.filter(AssetORM.is_critical.is_(is_critical))
+        if asset_type is not None:
+            query = query.filter(AssetORM.asset_type == asset_type)
+        if text:
+            query = query.filter(AssetORM.identifier.ilike(f"%{text}%"))
+
+        orm_assets = query.all()
+        return [orm_to_domain(orm_asset) for orm_asset in orm_assets]
