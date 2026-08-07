@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 
 from models.exposure_signal import ExposureSignal
 from models.orm.exposure_signal_orm import ExposureSignalORM
+from utils.datetime_utils import ensure_utc
 
 
 class ExposureSignalRepositoryInterface(ABC):
@@ -33,7 +34,7 @@ def _to_domain(row: ExposureSignalORM) -> ExposureSignal:
         signal_type=row.signal_type,  # type: ignore[arg-type]
         severity=row.severity,  # type: ignore[arg-type]
         description=row.description,
-        observed_at=row.observed_at,
+        observed_at=ensure_utc(row.observed_at),
     )
 
 

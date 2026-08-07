@@ -31,11 +31,22 @@ extend-exclude = ["migrations/versions"]
 # E/F: pyflakes+pycodestyle core rules, I: import sorting, UP: pyupgrade,
 # B: bugbear (common bug patterns), C4: comprehension cleanups
 select = ["E", "F", "I", "UP", "B", "C4"]
-ignore = []
+# B008 (function call in argument default) exists to catch a real Python
+# footgun — mutable default arguments evaluated once at function-definition
+# time. FastAPI's Depends(...) is a deliberate, sanctioned exception to
+# that pattern: it's how FastAPI's dependency injection is designed to be
+# used (see FastAPI's own docs), and it's immutable/side-effect-free at
+# definition time, so the footgun B008 protects against doesn't apply here.
+# Every B008 hit in this codebase (api/dependencies.py, api/routers/*) is
+# this exact case, not the bug the rule exists to catch.
+ignore = ["B008"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "--cov=. --cov-report=term-missing"
+filterwarnings = [
+    "ignore:'asyncio.iscoroutinefunction' is deprecated:DeprecationWarning:fastapi.routing",
+]
 
 [tool.mypy]
 python_version = "3.13"

@@ -120,3 +120,13 @@ class UserRegistrationRequest(BaseModel):
             is_privileged=self.is_privileged,
             department=self.department,
         )
+
+
+class CategoryAssignmentRequest(BaseModel):
+    """Validated input for the category-assignment endpoint
+    (PATCH /assets/{asset_id}/category, Milestone 19) — a single-field
+    schema rather than reusing a registration request, since assigning a
+    category to an existing asset has nothing to validate beyond the
+    category value itself."""
+
+    category: AssetCategory
