@@ -19,12 +19,33 @@ reasonable future refinement, not a Milestone 19 requirement.
 """
 
 from datetime import datetime
+from typing import Any
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict
 
 from models.enums import AssetCategory, AssetType, DiscoverySource, RiskLevel
 from models.exposure_signal import ExposureSeverity, ExposureSignalType
+
+
+class ErrorDetail(BaseModel):
+    """The inner "error" object every failure response contains — see
+    api/main.py's three exception handlers, which are the only code that
+    ever constructs this shape."""
+
+    code: str
+    message: str
+    details: dict[str, Any] = {}
+
+
+class ErrorResponse(BaseModel):
+    """The standardized error envelope (Milestone 20). Not used directly
+    in any route's response_model — FastAPI's error handlers build this
+    shape by hand (see api/main.py) since they run outside normal request
+    handling. Declared here purely so OpenAPI/Swagger documents the shape
+    every error response actually has."""
+
+    error: ErrorDetail
 
 
 class AssetResponse(BaseModel):

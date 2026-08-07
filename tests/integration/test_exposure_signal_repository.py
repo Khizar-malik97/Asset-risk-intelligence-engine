@@ -11,6 +11,7 @@ from models.enums import AssetCategory, DiscoverySource
 from models.exposure_signal import ExposureSeverity, ExposureSignal, ExposureSignalType
 from models.orm.asset_orm import HostORM
 from models.orm.base import Base
+from repositories.exceptions import ExposureSignalNotFoundError
 from repositories.exposure_signal_repository import SQLAlchemyExposureSignalRepository
 
 
@@ -130,5 +131,5 @@ class TestRemove:
     def test_remove_nonexistent_raises(self, db_session):
         repo = SQLAlchemyExposureSignalRepository(db_session)
 
-        with pytest.raises(ValueError):
+        with pytest.raises(ExposureSignalNotFoundError):
             repo.remove(uuid4())

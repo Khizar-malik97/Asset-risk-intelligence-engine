@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 
 from models.exposure_signal import ExposureSignal
 from models.orm.exposure_signal_orm import ExposureSignalORM
+from repositories.exceptions import ExposureSignalNotFoundError
 from utils.datetime_utils import ensure_utc
 
 
@@ -74,6 +75,6 @@ class SQLAlchemyExposureSignalRepository(ExposureSignalRepositoryInterface):
     def remove(self, signal_id: UUID) -> None:
         row = self._session.get(ExposureSignalORM, signal_id)
         if row is None:
-            raise ValueError(f"ExposureSignal {signal_id} not found.")
+            raise ExposureSignalNotFoundError(signal_id)
         self._session.delete(row)
         self._session.commit()

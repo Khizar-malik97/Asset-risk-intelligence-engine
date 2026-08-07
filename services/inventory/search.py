@@ -22,6 +22,7 @@ from models.exposure_signal import ExposureSignalType
 from repositories.exposure_signal_repository import ExposureSignalRepositoryInterface
 from repositories.interfaces import AssetRepositoryInterface
 from services.risk_engine.scoring import RiskScoringEngine
+from utils.exceptions import InvalidRequestError
 
 
 class AssetSearchService:
@@ -82,9 +83,10 @@ class AssetSearchService:
 
         if risk_level is not None:
             if self._risk_scoring_engine is None:
-                raise ValueError(
+                raise InvalidRequestError(
                     "risk_level filtering requires a RiskScoringEngine to be "
-                    "configured on AssetSearchService."
+                    "configured on AssetSearchService.",
+                    details={"filter": "risk_level"},
                 )
             candidates = [
                 asset for asset in candidates if self._matches_risk_level(asset, risk_level)

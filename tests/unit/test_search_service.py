@@ -15,6 +15,7 @@ from repositories.interfaces import AssetRepositoryInterface
 from services.inventory.search import AssetSearchService
 from services.risk_engine.base import RiskFactor, RiskFactorResult
 from services.risk_engine.scoring import RiskScoringEngine
+from utils.exceptions import InvalidRequestError
 
 
 class _FakeAssetRepository(AssetRepositoryInterface):
@@ -229,7 +230,7 @@ class TestRiskLevelFilter:
     def test_raises_without_configured_engine(self, asset_repo, signal_repo):
         service = AssetSearchService(asset_repo, signal_repo)  # no engine
 
-        with pytest.raises(ValueError):
+        with pytest.raises(InvalidRequestError):
             service.search(risk_level=RiskLevel.HIGH)
 
     def test_filters_by_computed_risk_level(self, asset_repo, signal_repo):

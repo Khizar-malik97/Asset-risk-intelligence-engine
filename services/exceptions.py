@@ -1,14 +1,18 @@
 """Exceptions raised by the service layer.
 
 Distinct from repositories/exceptions.py: those represent persistence-layer
-facts (a row doesn't exist). These represent business-rule violations
-(a registration request breaks a rule the service layer enforces) — the
-distinction matters because they'll likely map to different HTTP status
-codes later (404 vs 409) when Milestone 20 standardizes error handling.
+facts (a row doesn't exist). These represent business-rule violations (a
+registration request breaks a rule the service layer enforces). As of
+Milestone 20, both inherit from utils.exceptions.AppError subclasses so
+api/main.py's single AppError handler maps each to the right status code
+(404 vs 409) via `status_code` on the exception class, not per-raise-site
+logic.
 """
 
+from utils.exceptions import ConflictError
 
-class DuplicateAssetError(Exception):
+
+class DuplicateAssetError(ConflictError):
     """Raised when manually registering an asset whose identifier already
     exists in the inventory.
 
@@ -21,6 +25,11 @@ class DuplicateAssetError(Exception):
     the moment a human registers it.
     """
 
+    code = "duplicate_asset"
+
     def __init__(self, identifier: str) -> None:
         self.identifier = identifier
-        super().__init__(f"An asset with identifier '{identifier}' is already registered.")
+        super().__init__(
+            f"An asset with identifier '{identifier}' is already registered.",
+            details={"identifier": identifier},
+        )
