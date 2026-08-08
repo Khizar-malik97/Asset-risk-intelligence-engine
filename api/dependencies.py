@@ -35,6 +35,7 @@ from repositories.interfaces import AssetRepositoryInterface
 from services.discovery.discovery_service import DiscoveryService
 from services.discovery.interfaces import DiscoveryProviderInterface
 from services.discovery.reconciliation import ReconciliationService
+from services.export.json_export import ExportService
 from services.inventory.exposure_signal_service import ExposureSignalService
 from services.inventory.host_inventory_service import HostInventoryService
 from services.inventory.inventory_service import AssetInventoryService
@@ -144,3 +145,9 @@ def get_reconciliation_service(
     repository: AssetRepositoryInterface = Depends(get_asset_repository),
 ) -> ReconciliationService:
     return ReconciliationService(repository)
+
+
+def get_export_service(
+    search_service: AssetSearchService = Depends(get_search_service),
+) -> ExportService:
+    return ExportService(search_service)
