@@ -43,7 +43,10 @@ ignore = ["B008"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "--cov=. --cov-report=term-missing"
+addopts = "--cov=. --cov-report=term-missing -m \"not performance\""
+markers = [
+    "performance: slower, bulk-data benchmark tests (Milestone 23). Excluded from the default `pytest` run by addopts above — run them explicitly with `pytest -m performance` or `pytest tests/performance/`, so the everyday test suite stays fast.",
+]
 filterwarnings = [
     "ignore:'asyncio.iscoroutinefunction' is deprecated:DeprecationWarning:fastapi.routing",
 ]
@@ -65,6 +68,6 @@ strict = true
 # assertion) — we're relaxing the annotation requirement, not turning
 # off checking entirely.
 [[tool.mypy.overrides]]
-module = ["tests.unit.*", "tests.integration.*"]
+module = ["tests.unit.*", "tests.integration.*", "tests.performance.*"]
 disallow_untyped_defs = false
 check_untyped_defs = true
