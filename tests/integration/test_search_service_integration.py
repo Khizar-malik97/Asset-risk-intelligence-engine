@@ -9,7 +9,7 @@ import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 
-from models.enums import AssetCategory, DiscoverySource
+from models.enums import AssetCategory, AssetType, DiscoverySource
 from models.exposure_signal import ExposureSeverity, ExposureSignal, ExposureSignalType
 from models.orm.asset_orm import HostORM
 from models.orm.base import Base
@@ -118,3 +118,42 @@ def test_text_search_matches_substring_case_insensitively(db_session):
     results = search_service.search(text="prod")
 
     assert {asset.identifier for asset in results} == {"WEB-Production-01", "db-prod-01"}
+
+
+def test_search_filters_by_asset_type_against_real_database(db_session):
+    """Closes a real coverage gap: every other filter in
+    SQLAlchemyAssetRepository.search() had a DB-backed test; asset_type
+    didn't. Uses a generic asset alongside a Host specifically to prove
+    the SQL filter distinguishes them, not just that the query runs."""
+    from models.orm.asset_orm import AssetORM
+
+    db_session.add(
+        AssetORM(
+            identifier="generic-01",
+            asset_type="generic",
+            category=AssetCategory.UNCATEGORIZED,
+            is_critical=False,
+            discovery_source=DiscoverySource.MANUAL,
+            first_seen=datetime.now(UTC),
+            last_seen=datetime.now(UTC),
+        )
+    )
+    db_session.add(
+        HostORM(
+            identifier="host-01",
+            category=AssetCategory.SERVER,
+            is_critical=False,
+            discovery_source=DiscoverySource.MANUAL,
+            first_seen=datetime.now(UTC),
+            last_seen=datetime.now(UTC),
+        )
+    )
+    db_session.commit()
+
+    signal_repo = SQLAlchemyExposureSignalRepository(db_session)
+    asset_repo = SQLAlchemyAssetRepository(db_session)
+    search_service = AssetSearchService(asset_repo, signal_repo)
+
+    results = search_service.search(asset_type=AssetType.HOST)
+
+    assert [asset.identifier for asset in results] == ["host-01"]

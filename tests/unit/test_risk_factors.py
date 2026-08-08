@@ -156,6 +156,28 @@ class TestLoadRiskWeights:
         with pytest.raises(RiskWeightConfigError):
             load_risk_weights(config_file)
 
+    def test_boolean_weight_rejected(self, tmp_path: Path) -> None:
+        """`bool` is a subclass of `int` in Python, so `isinstance(True,
+        int)` is True — without an explicit isinstance(weight, bool)
+        guard in load_risk_weights(), a YAML `true`/`false` value would
+        silently pass as a weight of 1/0 instead of being rejected as
+        the config error it actually is."""
+        config_file = tmp_path / "risk_weights.yaml"
+        config_file.write_text("critical_asset_flag: true\n")
+
+        with pytest.raises(RiskWeightConfigError):
+            load_risk_weights(config_file)
+
+    def test_non_string_factor_name_rejected(self, tmp_path: Path) -> None:
+        """A bare numeric YAML key (e.g. `123: 30`) parses as an int, not
+        a str — load_risk_weights() must reject that key itself, not
+        just the weight value next to it."""
+        config_file = tmp_path / "risk_weights.yaml"
+        config_file.write_text("123: 30\n")
+
+        with pytest.raises(RiskWeightConfigError):
+            load_risk_weights(config_file)
+
     def test_non_mapping_content_rejected(self, tmp_path: Path) -> None:
         config_file = tmp_path / "risk_weights.yaml"
         config_file.write_text("- just\n- a\n- list\n")

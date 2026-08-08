@@ -115,6 +115,29 @@ class TestValidationEnvelope:
         assert response.status_code == 422
         assert response.json()["error"]["code"] == "validation_error"
 
+    def test_whitespace_only_exposure_signal_description_returns_standard_envelope(
+        self, client: TestClient
+    ) -> None:
+        """Milestone 22 gap: ExposureSignalAttachRequest.description_must_not_be_blank
+        (schemas/exposure_signal.py) had zero test coverage anywhere —
+        the existing blank-description tests in test_exposure_signal_model.py
+        exercise a completely different validator, on the domain model,
+        not the API request schema. This proves the API itself actually
+        rejects it, not just the model underneath it."""
+        created = client.post("/assets", json={"identifier": "signal-envelope-01"}).json()
+
+        response = client.post(
+            f"/assets/{created['id']}/exposure-signals",
+            json={
+                "signal_type": "internet_facing",
+                "severity": "high",
+                "description": "   ",
+            },
+        )
+
+        assert response.status_code == 422
+        assert response.json()["error"]["code"] == "validation_error"
+
 
 class TestEveryErrorSharesOneShape:
     """A single structural assertion, run against every failure mode this

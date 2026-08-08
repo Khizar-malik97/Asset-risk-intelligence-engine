@@ -71,6 +71,27 @@ class TestHostRegistrationRequest:
 
         assert request.ip_address is None
 
+    def test_ip_address_explicit_none_accepted(self):
+        """Distinct from test_ip_address_optional above: that test never
+        passes ip_address at all, so Pydantic v2 doesn't run the field
+        validator against the default (no validate_default=True here).
+        This test explicitly passes None, which DOES invoke
+        ip_address_must_be_valid — proving its own None-short-circuit
+        branch, not just the field's default value."""
+        request = HostRegistrationRequest(identifier="web-02b", ip_address=None)
+
+        assert request.ip_address is None
+
+    def test_whitespace_only_identifier_rejected(self):
+        """HostRegistrationRequest defines its own copy of
+        identifier_must_not_be_blank (not shared with
+        AssetRegistrationRequest's — see schemas/asset.py) — proving it
+        here, not just on AssetRegistrationRequest, closes a real gap:
+        the two validators are separate code that happened to be
+        identical, not the same function reused."""
+        with pytest.raises(ValidationError):
+            HostRegistrationRequest(identifier="   ")
+
     def test_invalid_ipv4_rejected(self):
         with pytest.raises(ValidationError):
             HostRegistrationRequest(identifier="web-03", ip_address="999.999.999.999")
@@ -115,6 +136,13 @@ class TestUserRegistrationRequest:
         request = UserRegistrationRequest(identifier="jsmith")
 
         assert request.department is None
+
+    def test_whitespace_only_identifier_rejected(self):
+        """UserRegistrationRequest's own copy of
+        identifier_must_not_be_blank — same reasoning as the equivalent
+        test on TestHostRegistrationRequest above."""
+        with pytest.raises(ValidationError):
+            UserRegistrationRequest(identifier="   ")
 
     def test_department_too_long_rejected(self):
         with pytest.raises(ValidationError):
