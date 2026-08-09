@@ -38,7 +38,7 @@ from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
-from api.routers import assets, discovery, export, exposure_signals
+from api.routers import assets, discovery, export, exposure_signals, integration
 from config.settings import settings
 from utils.exceptions import AppError
 
@@ -54,6 +54,7 @@ app.include_router(assets.router)
 app.include_router(exposure_signals.router)
 app.include_router(discovery.router)
 app.include_router(export.router)
+app.include_router(integration.router)
 
 
 def _error_envelope(
