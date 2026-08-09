@@ -1,0 +1,84 @@
+# Milestone 24 — containerized run for Module 12.
+#
+# One service, not two. This deliberately does NOT include a separate
+# Postgres container, even though the roadmap's phrasing for this
+# milestone says "app + DB service" — here's why that's the right call
+# for THIS codebase, not a shortcut:
+#
+# The app currently runs on SQLite (config/settings.py's
+# DATABASE_URL default, and every test in this repo). SQLite is an
+# embedded, in-process database — there is no separate database SERVER
+# process to containerize; the "database" is a file. Standing up an
+# unused Postgres container here would be untested config nobody asked
+# for, not a real second service. The app's actual database access layer
+# (config/database.py) already conditionally handles both SQLite and
+# Postgres connection args — that seam exists on purpose, so switching to
+# Postgres later is a DATABASE_URL change plus adding a driver dependency,
+# not an architecture change. See docs/docker.md for exactly how to do
+# that when it's actually needed.
+#
+# What DOES need solving for a container, and what this file solves:
+# SQLite's data file must survive `docker compose down` / a container
+# restart, or every deploy would silently wipe the inventory. The named
+# volume below is that persistence layer — the honest equivalent of a
+# "DB service" for an embedded database.
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: axeronix-module12-asset-intelligence:latest
+    ports:
+      - "${API_PORT:-8000}:8000"
+    environment:
+      APP_NAME: "AXERONIX Asset Intelligence Module"
+      ENVIRONMENT: "${ENVIRONMENT:-production}"
+      DEBUG: "${DEBUG:-false}"
+      # No default on purpose — same fail-fast reasoning as
+      # config/settings.py itself. `${VAR:?message}` makes `docker
+      # compose up` refuse to start (with this exact message) rather
+      # than silently launching without a real secret.
+      SECRET_KEY: "${SECRET_KEY:?SECRET_KEY must be set in your environment or .env file before running docker compose up — see .env.example}"
+      # Absolute path (4 slashes: sqlite:// + /data/...) into the named
+      # volume below, so the database file survives container restarts.
+      DATABASE_URL: "sqlite:////data/asset_intelligence.db"
+      RISK_WEIGHTS_CONFIG_PATH: "config/risk_weights.yaml"
+      RISK_THRESHOLDS_CONFIG_PATH: "config/risk_thresholds.yaml"
+      API_HOST: "0.0.0.0"
+      API_PORT: "8000"
+      LOG_LEVEL: "${LOG_LEVEL:-INFO}"
+    volumes:
+      - asset_intelligence_data:/data
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health', timeout=3)"]
+      interval: 30s
+      timeout: 5s
+      start_period: 10s
+      retries: 3
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------
+  # Reference only — commented out, not part of the running stack.
+  # Uncomment (and add `psycopg2-binary` to requirements.txt, and point
+  # DATABASE_URL above at this service) if/when this module actually
+  # moves to Postgres. Left here as documentation, not a hidden
+  # untested dependency.
+  # ---------------------------------------------------------------
+  # postgres:
+  #   image: postgres:16-alpine
+  #   environment:
+  #     POSTGRES_DB: asset_intelligence
+  #     POSTGRES_USER: asset_intelligence
+  #     POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}"
+  #   volumes:
+  #     - postgres_data:/var/lib/postgresql/data
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "pg_isready -U asset_intelligence"]
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 5
+
+volumes:
+  asset_intelligence_data:
+  # postgres_data:

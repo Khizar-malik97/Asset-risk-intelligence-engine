@@ -1,0 +1,38 @@
+# Version control
+.git
+.gitignore
+
+# Local Python environment / caches — never needed inside the image,
+# the builder stage installs dependencies fresh
+.venv
+venv
+__pycache__
+*.py[cod]
+.pytest_cache
+.mypy_cache
+.ruff_cache
+.coverage
+htmlcov/
+
+# Secrets — .env must NEVER end up baked into an image layer. Runtime
+# config comes from docker-compose's `environment:` / `env_file:`
+# instead, injected at container start, not build time.
+.env
+.env.*
+!.env.example
+
+# Local SQLite database files — the container writes its own inside the
+# named volume (see docker-compose.yml), never reuses a host-machine one
+*.db
+*.sqlite3
+
+# Not needed at runtime — smaller image, and none of it affects how the
+# API behaves
+tests/
+docs/
+Architecture and technology selection/
+Requirement analysis and project charter/
+scripts/
+README.md
+.pre-commit-config.yaml
+pre-commit-config.yaml
